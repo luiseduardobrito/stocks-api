@@ -1,23 +1,42 @@
 import hug
 import json
 
+from datetime import datetime
+from dateutil import relativedelta as rdelta
 from database import User, MainDatabase
 
-@hug.post('/signup', output=hug.output_format.json)
+@hug.post('/user/signup')
 def user_signup(body, charset='utf-8'):
 
-    user = User(email=body['email'], name=body['name'], password=body['password'])
+    user = User(**body)
     user.save()
 
     return json.loads(user.to_json())
 
 
-@hug.get('/user/age', output=hug.output_format.json)
-def user_age(body, charset='utf-8'):
+@hug.get('/user/age')
+def user_age(id, charset='utf-8'):
+
+    query = User.objects(id=id)
+
+    if len(query) > 0:
+
+        user = query.get(0)
+        rd = rdelta.relativedelta(datetime.now(), user.birthday)
+
+        return {
+            'age': "{0.years} years, {0.months} months, {0.days} days".format(rd),
+            'user': json.loads(user.to_json())
+        }
 
 
 
+@hug.get('/user/find')
+def user_age(id, charset='utf-8'):
+    return json.loads(User.objects(id=id).to_json())
 
 
-db = MainDatabase({})
-db.connect()
+@hug.startup()
+def start(api):
+    db = MainDatabase({})
+    db.connect()
